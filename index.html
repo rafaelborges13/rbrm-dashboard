@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RBRM Associados — Painel de Gestão</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root {
+  color-scheme: light;
+  --blue:       #1a5276;
+  --blue-mid:   #2e86c1;
+  --blue-light: #d6eaf8;
+  --green:      #1e8449;
+  --green-light:#d5f5e3;
+  --green-vivid:#27ae60;
+  --red:        #c0392b;
+  --red-light:  #fadbd8;
+  --yellow:     #d4ac0d;
+  --yellow-light:#fef9e7;
+  --orange:     #ca6f1e;
+  --orange-light:#fdebd0;
+  --bg:         #f0f4f8;
+  --card:       #ffffff;
+  --text:       #1c2833;
+  --text-muted: #717d7e;
+  --border:     #dce3ea;
+  --shadow:     0 2px 12px rgba(26,82,118,0.09);
+  --radius:     12px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── HEADER ── */
+header {
+  background: linear-gradient(135deg, var(--blue) 0%, var(--blue-mid) 100%);
+  color: #fff;
+  padding: 18px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+}
+header h1 { font-size: 1.25rem; font-weight: 800; letter-spacing: -.3px; }
+header p  { font-size: 0.8rem; opacity: .8; margin-top: 2px; }
+.header-right { text-align: right; }
+.last-update { background: rgba(255,255,255,.18); border-radius: 20px; padding: 4px 14px; font-size: 0.75rem; font-weight: 600; letter-spacing: .03em; }
+
+/* ── LAYOUT ── */
+.container { max-width: 1120px; margin: 0 auto; padding: 22px 18px 32px; }
+.section { margin-bottom: 26px; }
+.section-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--blue);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--blue-mid);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px 20px;
+}
+
+/* ── KPI CARDS ── */
+.kpi-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 5px; }
+.kpi-value { font-size: 1.85rem; font-weight: 800; color: var(--blue); letter-spacing: -.5px; }
+.kpi-sub   { font-size: 0.77rem; color: var(--text-muted); margin-top: 5px; }
+.kpi-delta-good { color: var(--green);  font-weight: 700; }
+.kpi-delta-bad  { color: var(--red);    font-weight: 700; }
+.kpi-icon { font-size: 1.6rem; margin-bottom: 6px; }
+
+/* ── ALERT ── */
+.alert {
+  background: #fff5f4;
+  border: 1.5px solid #f1948a;
+  border-left: 5px solid var(--red);
+  border-radius: var(--radius);
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+  font-size: 0.87rem;
+}
+.alert-icon { font-size: 1.4rem; flex-shrink: 0; }
+.alert strong { color: var(--red); }
+
+/* ── GRADE DE ESPERA ── */
+.unit-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.unit-row:last-child { border-bottom: none; }
+.unit-name   { width: 185px; font-size: 0.88rem; font-weight: 600; flex-shrink: 0; }
+.unit-region { width: 95px; font-size: 0.75rem; color: var(--text-muted); flex-shrink: 0; }
+.bar-track   { flex: 1; background: #eaf0f6; border-radius: 99px; height: 20px; overflow: hidden; }
+.bar-fill    {
+  height: 100%;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  padding-right: 8px;
+  justify-content: flex-end;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #fff;
+  transition: width .6s ease;
+  min-width: 28px;
+}
+.bar-ok     { background: linear-gradient(90deg, #27ae60, #2ecc71); }
+.bar-low    { background: linear-gradient(90deg, #ca6f1e, #e67e22); }
+.bar-crit   { background: linear-gradient(90deg, #c0392b, #e74c3c); }
+.unit-days  { width: 72px; text-align: right; font-size: 0.88rem; font-weight: 800; flex-shrink: 0; }
+.ok   { color: var(--green); }
+.low  { color: var(--orange); }
+.crit { color: var(--red); }
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+.legend-dot {
+  width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0;
+}
+
+/* ── FOLHA DE PAGAMENTO ── */
+.month-header {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--blue);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.badge-realizado { background: var(--blue-light); color: var(--blue); border-radius: 99px; padding: 2px 9px; font-size: 0.7rem; font-weight: 700; }
+.badge-previsto  { background: var(--green-light); color: var(--green); border-radius: 99px; padding: 2px 9px; font-size: 0.7rem; font-weight: 700; }
+
+table.pay-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+table.pay-table th {
+  background: #eaf0f7;
+  color: var(--blue);
+  padding: 7px 10px;
+  text-align: left;
+  font-weight: 700;
+  border-bottom: 2px solid var(--blue-light);
+}
+table.pay-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+table.pay-table tr:hover td { background: #f7fbff; }
+table.pay-table tr.total-row td {
+  background: #d6eaf8;
+  font-weight: 800;
+  color: var(--blue);
+  border-top: 2px solid var(--blue-mid);
+  border-bottom: none;
+}
+.tag-esp {
+  background: #d6eaf8; color: var(--blue);
+  border-radius: 4px; padding: 1px 6px;
+  font-size: 0.68rem; font-weight: 700;
+  white-space: nowrap;
+}
+.tag-ger {
+  background: #d5f5e3; color: var(--green);
+  border-radius: 4px; padding: 1px 6px;
+  font-size: 0.68rem; font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ── CHART ── */
+.chart-wrap { height: 210px; position: relative; }
+
+/* ── PLACEHOLDER ── */
+.placeholder {
+  background: #fafbfc;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 36px 20px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.placeholder .pl-icon { font-size: 2.2rem; margin-bottom: 8px; }
+.placeholder strong { display: block; font-size: 0.9rem; color: var(--text); margin-bottom: 6px; }
+.placeholder p { font-size: 0.82rem; max-width: 280px; margin: 0 auto; }
+
+/* ── FOOTER ── */
+footer {
+  text-align: center;
+  padding: 16px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+footer a { color: var(--blue-mid); text-decoration: none; font-weight: 600; }
+
+/* ── SCROLLABLE TABLE ── */
+.table-wrap { overflow-x: auto; }
+
+/* ── COMPARISON BAR ── */
+.compare-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.compare-label { width: 55px; font-size: 0.77rem; color: var(--text-muted); }
+.compare-track { flex: 1; height: 18px; background: #eaf0f6; border-radius: 99px; overflow: hidden; }
+.compare-fill  { height: 100%; border-radius: 99px; display: flex; align-items: center; padding: 0 8px; font-size: 0.7rem; font-weight: 700; color: #fff; }
+.fill-maio   { background: linear-gradient(90deg, var(--blue), var(--blue-mid)); }
+.fill-junho  { background: linear-gradient(90deg, var(--green), var(--green-vivid)); }
+.compare-val { width: 95px; font-size: 0.78rem; font-weight: 700; text-align: right; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🏥 RBRM Associados</h1>
+    <p>Painel de Gestão · Verticalização Oftalmológica · Plena Saúde</p>
+  </div>
+  <div class="header-right">
+    <div class="last-update">📅 Atualizado: 22/06/2026</div>
+    <div style="font-size:0.72rem;opacity:.7;margin-top:5px;">Power BI + Escalas Médicas</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ── ALERTAS ── -->
+  <div id="alertas-container"></div>
+
+  <!-- ── KPIs ── -->
+  <div class="section">
+    <div class="section-title">📊 Indicadores Principais</div>
+    <div class="grid-3">
+      <div class="card">
+        <div class="kpi-icon">📈</div>
+        <div class="kpi-label">Faturamento — Maio 2026</div>
+        <div class="kpi-value" style="color:var(--green)">R$ 342.116</div>
+        <div class="kpi-sub">Plena Saúde · margem 23,4%</div>
+      </div>
+      <div class="card">
+        <div class="kpi-icon">💰</div>
+        <div class="kpi-label">Custo Médico — Maio 2026</div>
+        <div class="kpi-value">R$ 165.420</div>
+        <div class="kpi-sub">Prestadores · Previsto Junho: <strong>R$ 125.883</strong></div>
+      </div>
+      <div class="card">
+        <div class="kpi-icon">⏱️</div>
+        <div class="kpi-label">Unidades Fora do Intervalo Ideal</div>
+        <div class="kpi-value" id="kpi-fora-meta" style="color:var(--red)">— / 8</div>
+        <div class="kpi-sub">Ideal: 12–14 dias para 1ª consulta</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GRADE DE ESPERA ── -->
+  <div class="section">
+    <div class="section-title">⏱️ Grade de Espera por Unidade
+      <span style="font-size:0.72rem;font-weight:400;color:var(--text-muted);text-transform:none;letter-spacing:0">Power BI · 31/05/2026</span>
+    </div>
+    <div class="card">
+      <div id="grade-list"></div>
+      <div class="legend">
+        <span class="legend-dot" style="background:var(--orange)"></span> Subutilizado (&lt;12 dias) — perda de receita
+        <span class="legend-dot" style="background:var(--green-vivid)"></span> Ideal (12–14 dias)
+        <span class="legend-dot" style="background:var(--red)"></span> Crítico (&gt;14 dias) — fila longa
+        <span style="margin-left:auto">Ideal: <strong>12–14 dias</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FOLHA DE PAGAMENTO ── -->
+  <div class="section">
+    <div class="section-title">💰 Folha de Pagamento</div>
+    <div class="grid-2">
+
+      <!-- Maio -->
+      <div class="card">
+        <div class="month-header">
+          Maio 2026 <span class="badge-realizado">REALIZADO</span>
+        </div>
+        <div class="table-wrap">
+          <table class="pay-table">
+            <thead><tr><th>Médico</th><th>Tipo</th><th style="text-align:right">Total</th></tr></thead>
+            <tbody id="tb-maio"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Junho -->
+      <div class="card">
+        <div class="month-header">
+          Junho 2026 <span class="badge-previsto">PREVISTO</span>
+        </div>
+        <div class="table-wrap">
+          <table class="pay-table">
+            <thead><tr><th>Médico</th><th>Tipo</th><th style="text-align:right">Total</th></tr></thead>
+            <tbody id="tb-junho"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Comparação -->
+    <div class="card" style="margin-top:14px">
+      <div class="month-header">Comparativo Maio × Junho</div>
+      <div class="compare-row">
+        <div class="compare-label">Maio</div>
+        <div class="compare-track"><div class="compare-fill fill-maio" style="width:100%">R$ 152.935</div></div>
+        <div class="compare-val" style="color:var(--blue)">R$ 152.935</div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-label">Junho</div>
+        <div class="compare-track"><div class="compare-fill fill-junho" style="width:82.3%">R$ 125.883</div></div>
+        <div class="compare-val" style="color:var(--green)">R$ 125.883</div>
+      </div>
+      <div style="margin-top:8px;font-size:0.78rem;color:var(--text-muted)">
+        Redução de <strong style="color:var(--green)">R$ 27.052 (17,7%)</strong> — principalmente Felipe Tai e Heron Maximo com menos horas em Junho.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RESULTADO FINANCEIRO ── -->
+  <div class="section">
+    <div class="section-title">📈 Resultado Financeiro</div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px">
+
+      <!-- DRE Maio Realizado -->
+      <div class="card">
+        <div class="month-header">DRE — Maio 2026 <span class="badge-realizado">REALIZADO</span></div>
+        <div style="font-size:0.72rem;background:var(--blue-light);color:var(--blue);padding:5px 10px;border-radius:6px;margin-bottom:10px">
+          Faturamento = produção <strong>Março</strong> · Custo médico = FINANCEIRO <strong>Março</strong> (agenda + cirurgia)
+        </div>
+        <table class="pay-table">
+          <thead><tr><th>Categoria</th><th style="text-align:right">R$</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="color:var(--green);font-weight:700">(+) Faturamento Plena Saúde</td>
+              <td style="text-align:right;color:var(--green);font-weight:700">342.116,10</td>
+            </tr>
+            <tr>
+              <td>(–) Custo médico — Março (FINANCEIRO)</td>
+              <td style="text-align:right;color:var(--red)">222.745,00</td>
+            </tr>
+            <tr>
+              <td style="padding-left:16px;font-size:0.78rem;color:var(--text-muted)">Agenda (consultas)</td>
+              <td style="text-align:right;font-size:0.78rem;color:var(--text-muted)">164.320,00</td>
+            </tr>
+            <tr>
+              <td style="padding-left:16px;font-size:0.78rem;color:var(--text-muted)">Cirurgias / procedimentos</td>
+              <td style="text-align:right;font-size:0.78rem;color:var(--text-muted)">58.425,00</td>
+            </tr>
+            <tr>
+              <td>(–) Funcionários CLT</td>
+              <td style="text-align:right;color:var(--red)">7.249,00</td>
+            </tr>
+            <tr>
+              <td>(–) Contador</td>
+              <td style="text-align:right;color:var(--red)">1.000,00</td>
+            </tr>
+            <tr>
+              <td>(–) Impostos (DARF / DAS)</td>
+              <td style="text-align:right;color:var(--red)">24.248,97</td>
+            </tr>
+            <tr>
+              <td>(–) Outros / admin</td>
+              <td style="text-align:right;color:var(--red)">4.285,84</td>
+            </tr>
+            <tr style="background:var(--green-light)">
+              <td style="font-weight:800;color:var(--green)">(=) Resultado operacional</td>
+              <td style="text-align:right;font-weight:800;color:var(--green)">82.587,29</td>
+            </tr>
+            <tr>
+              <td>(–) Lucro distribuído sócios</td>
+              <td style="text-align:right;color:var(--red)">177.900,00</td>
+            </tr>
+            <tr>
+              <td style="padding-left:16px;font-size:0.78rem;color:var(--text-muted)">Rafael de Farias Borges</td>
+              <td style="text-align:right;font-size:0.78rem;color:var(--text-muted)">91.000,00</td>
+            </tr>
+            <tr>
+              <td style="padding-left:16px;font-size:0.78rem;color:var(--text-muted)">Renato Maia Macchio</td>
+              <td style="text-align:right;font-size:0.78rem;color:var(--text-muted)">86.900,00</td>
+            </tr>
+            <tr class="total-row">
+              <td>(=) Variação de caixa</td>
+              <td style="text-align:right">– 95.312,71</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top:8px;font-size:0.74rem;color:var(--text-muted);font-style:italic">
+          Faturamento via extrato Cora · Custo médico via FINANCEIRO S/S 2026 (Google Drive)
+        </div>
+      </div>
+
+      <!-- DRE Junho Previsto -->
+      <div class="card">
+        <div class="month-header">DRE — Junho 2026 <span class="badge-previsto">PREVISTO</span></div>
+        <div style="font-size:0.72rem;background:var(--green-light);color:var(--green);padding:5px 10px;border-radius:6px;margin-bottom:10px">
+          Faturamento = produção <strong>Abril</strong> · Custo médico = FINANCEIRO <strong>Abril</strong> (agenda + cirurgia)
+        </div>
+        <table class="pay-table">
+          <thead><tr><th>Categoria</th><th style="text-align:right">R$</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="color:var(--text-muted);font-weight:700">(+) Faturamento Plena Saúde</td>
+              <td style="text-align:right;color:var(--text-muted);font-style:italic">A confirmar</td>
+            </tr>
+            <tr>
+              <td>(–) Custo médico — Abril (FINANCEIRO)</td>
+              <td style="text-align:right;color:var(--red)">199.402,50</td>
+            </tr>
+            <tr>
+              <td style="padding-left:16px;font-size:0.78rem;color:var(--text-muted)">Agenda (consultas)</td>
+              <td style="text-align:right;font-size:0.78rem;color:var(--text-muted)">154.052,50</td>
+            </tr>
+            <tr>
+              <td style="padding-left:16px;font-size:0.78rem;color:var(--text-muted)">Cirurgias / procedimentos</td>
+              <td style="text-align:right;font-size:0.78rem;color:var(--text-muted)">41.850,00</td>
+            </tr>
+            <tr>
+              <td>(–) Funcionários CLT</td>
+              <td style="text-align:right;color:var(--red)">7.249,00</td>
+            </tr>
+            <tr>
+              <td>(–) Contador</td>
+              <td style="text-align:right;color:var(--red)">1.000,00</td>
+            </tr>
+            <tr>
+              <td>(–) Impostos (15% s/ fat.)</td>
+              <td style="text-align:right;color:var(--text-muted);font-style:italic">A confirmar</td>
+            </tr>
+            <tr>
+              <td>(–) Outros / admin</td>
+              <td style="text-align:right;color:var(--text-muted);font-style:italic">≈ 4.300,00</td>
+            </tr>
+            <tr style="background:var(--yellow-light)">
+              <td style="font-weight:800;color:var(--yellow)">(=) Resultado operacional</td>
+              <td style="text-align:right;font-weight:800;color:var(--yellow)">Aguarda faturamento</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top:8px;font-size:0.74rem;color:var(--text-muted);font-style:italic">
+          Faturamento Junho = repasse Plena pela produção de Abril. Custo médico via FINANCEIRO S/S 2026.
+        </div>
+      </div>
+
+      <!-- DRE Julho Previsto -->
+
+      <div class="card">
+        <div class="month-header">DRE — Julho 2026 <span class="badge-previsto">PREVISTO</span></div>
+        <div style="font-size:0.72rem;background:var(--orange-light);color:var(--orange);padding:5px 10px;border-radius:6px;margin-bottom:10px">
+          Faturamento = produção <strong>Maio</strong> · Custo médico = Escala <strong>Julho</strong> (agenda prevista)
+        </div>
+        <table class="pay-table">
+          <thead><tr><th>Categoria</th><th style="text-align:right">R$</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="color:var(--text-muted);font-weight:700">(+) Faturamento Plena Saúde</td>
+              <td style="text-align:right;color:var(--text-muted);font-style:italic">A confirmar</td>
+            </tr>
+            <tr>
+              <td>(–) Custo médico agenda — Escala Julho</td>
+              <td style="text-align:right;color:var(--red)">147.257,50</td>
+            </tr>
+            <tr>
+              <td style="padding-left:16px;font-size:0.78rem;color:var(--text-muted)">Agenda (consultas previstas)</td>
+              <td style="text-align:right;font-size:0.78rem;color:var(--text-muted)">147.257,50</td>
+            </tr>
+            <tr>
+              <td style="padding-left:16px;font-size:0.78rem;color:var(--text-muted)">Cirurgias / procedimentos</td>
+              <td style="text-align:right;font-size:0.78rem;color:var(--text-muted);font-style:italic">A confirmar</td>
+            </tr>
+            <tr>
+              <td>(–) Funcionários CLT</td>
+              <td style="text-align:right;color:var(--red)">7.249,00</td>
+            </tr>
+            <tr>
+              <td>(–) Contador</td>
+              <td style="text-align:right;color:var(--red)">1.000,00</td>
+            </tr>
+            <tr>
+              <td>(–) Impostos (15% s/ fat.)</td>
+              <td style="text-align:right;color:var(--text-muted);font-style:italic">A confirmar</td>
+            </tr>
+            <tr>
+              <td>(–) Outros / admin</td>
+              <td style="text-align:right;color:var(--text-muted);font-style:italic">≈ 4.300,00</td>
+            </tr>
+            <tr style="background:var(--yellow-light)">
+              <td style="font-weight:800;color:var(--yellow)">(=) Resultado operacional</td>
+              <td style="text-align:right;font-weight:800;color:var(--yellow)">Aguarda faturamento</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top:8px;font-size:0.74rem;color:var(--text-muted);font-style:italic">
+          Custo médico via Escala Julho 2026 · Faturamento = extrato Cora Maio/Junho (A confirmar)
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Despesas Fixas sempre presentes -->
+    <div class="card">
+      <div class="month-header">Custos Fixos Mensais (sempre presentes)</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:4px">
+        <div style="text-align:center;padding:12px;background:var(--bg);border-radius:10px">
+          <div style="font-size:1.4rem;margin-bottom:4px">👥</div>
+          <div style="font-weight:800;font-size:1rem;color:var(--blue)">R$ 7.249</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">2 Funcionários CLT<br>2 × R$ 2.300 + encargos</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:var(--bg);border-radius:10px">
+          <div style="font-size:1.4rem;margin-bottom:4px">📊</div>
+          <div style="font-weight:800;font-size:1rem;color:var(--blue)">R$ 1.000</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">Contador<br>Honorários mensais</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:var(--bg);border-radius:10px">
+          <div style="font-size:1.4rem;margin-bottom:4px">🏛️</div>
+          <div style="font-weight:800;font-size:1rem;color:var(--blue)">15%</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">Impostos<br>Sobre faturamento</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Instrução nova agenda -->
+    <div class="card" style="margin-top:14px;border-left:4px solid var(--blue-mid)">
+      <div class="month-header">📅 Como reportar nova agenda aberta</div>
+      <div style="font-size:0.85rem;color:var(--text);line-height:1.7">
+        Acesse o Google Sheets → aba <strong>"📅 Ajustes de Previsão"</strong> e preencha: mês, médico, unidade e horas adicionais. Depois avise o Rafael: <em>"Abri nova agenda — já registrei no Sheets"</em>. O Claude recalcula e atualiza o painel.
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  RBRM Associados · Dados: Power BI Plena Saúde + Escalas Médicas ·
+  <strong>Para atualizar:</strong> preencha o Google Sheets e diga ao Claude no Cowork: <em>"atualiza o dashboard"</em>
+</footer>
+
+<script>
+// ══════════════════════════════════════════
+// DADOS — edite aqui ao atualizar o painel
+// ══════════════════════════════════════════
+const META_MAX = 14;   // acima disso: fila longa
+const META_MIN = 12;   // abaixo disso: agenda subutilizada
+const LAST_UPDATE = "22/06/2026";
+
+const gradeEspera = [
+  { nome: "Amb/PS-Franco",        regiao: "Alto Tietê", dias: 8  },
+  { nome: "Arujá - PS",           regiao: "Noroeste",   dias: 29 },
+  { nome: "Cajamar",              regiao: "Noroeste",   dias: 11 },
+  { nome: "Hospital-Mogi",        regiao: "Alto Tietê", dias: 9  },
+  { nome: "Hospital-Taipas (SP)", regiao: "São Paulo",  dias: 3  },
+  { nome: "Itaquaquecetuba",      regiao: "Alto Tietê", dias: 9  },
+  { nome: "Lapa",                 regiao: "São Paulo",  dias: 14 },
+  { nome: "Osasco",               regiao: "São Paulo",  dias: 16 },
+];
+
+const folhaMaio = [
+  { nome: "Heron Maximo",       tipo: "Especialista", total: 14000    },
+  { nome: "Leandro Cavalcante", tipo: "Generalista",  total: 13950    },
+  { nome: "Felipe Tai",         tipo: "Generalista",  total: 27380    },
+  { nome: "Gabriel Lara",       tipo: "Generalista",  total: 7400     },
+  { nome: "Barbara Vilela",     tipo: "Especialista", total: 14000    },
+  { nome: "João Abate",         tipo: "Especialista", total: 4995     },
+  { nome: "Mateus Matuoka",     tipo: "Especialista", total: 3200     },
+  { nome: "Vinicius Secchin",   tipo: "Especialista", total: 6000     },
+  { nome: "Rodrigo Dompieri",   tipo: "Especialista", total: 1200     },
+  { nome: "Demais médicos",     tipo: "—",            total: 60810    },
+  { nome: "TOTAL",              tipo: "",             total: 152935   },
+];
+
+const folhaJunho = [
+  { nome: "Barbara Vilela",     tipo: "Especialista", total: 14600    },
+  { nome: "Felipe Tai",         tipo: "Generalista",  total: 33700    },
+  { nome: "Leandro Cavalcante", tipo: "Generalista",  total: 12395    },
+  { nome: "Gabriel Lara",       tipo: "Generalista",  total: 7400     },
+  { nome: "Heron Maximo",       tipo: "Especialista", total: 5550     },
+  { nome: "João Abate",         tipo: "Especialista", total: 4995     },
+  { nome: "Mateus Matuoka",     tipo: "Especialista", total: 3200     },
+  { nome: "Vinicius Secchin",   tipo: "Especialista", total: 6000     },
+  { nome: "Demais médicos",     tipo: "—",            total: 38042.5  },
+  { nome: "TOTAL",              tipo: "",             total: 125882.5 },
+];
+
+// ══════════════════════════════════════════
+// ALERTAS DINÂMICOS
+// ══════════════════════════════════════════
+const alertContainer = document.getElementById('alertas-container');
+const unitsCrit = gradeEspera.filter(u => u.dias > META_MAX);
+const unitsLow  = gradeEspera.filter(u => u.dias < META_MIN);
+const unitsOk   = gradeEspera.filter(u => u.dias >= META_MIN && u.dias <= META_MAX);
+
+// KPI fora da meta
+const foraTotal = unitsCrit.length + unitsLow.length;
+const kpiFora = document.getElementById('kpi-fora-meta');
+kpiFora.textContent = `${foraTotal} / ${gradeEspera.length}`;
+kpiFora.style.color = foraTotal > 0 ? 'var(--red)' : 'var(--green)';
+
+// Alerta fila longa
+if (unitsCrit.length > 0) {
+  const nomes = unitsCrit.map(u => `<strong>${u.nome} (${u.dias}d)</strong>`).join(', ');
+  alertContainer.innerHTML += `
+    <div class="alert" style="margin-bottom:10px">
+      <span class="alert-icon">🔴</span>
+      <div>
+        <strong>Fila longa — acima de ${META_MAX} dias:</strong> ${nomes}.
+        Avaliar reforço de grade médica nestas unidades.
+      </div>
+    </div>`;
+}
+
+// Alerta agenda subutilizada
+if (unitsLow.length > 0) {
+  const nomes = unitsLow.map(u => `<strong>${u.nome} (${u.dias}d)</strong>`).join(', ');
+  alertContainer.innerHTML += `
+    <div class="alert" style="background:#fff8f0;border-color:#f0a500;border-left-color:var(--orange);margin-bottom:10px">
+      <span class="alert-icon">🟠</span>
+      <div style="color:#7d5a00">
+        <strong style="color:var(--orange)">Agenda subutilizada — abaixo de ${META_MIN} dias:</strong> ${nomes}.
+        Há capacidade ociosa — avaliar captação de pacientes ou redistribuição de grade.
+      </div>
+    </div>`;
+}
+
+if (unitsCrit.length === 0 && unitsLow.length === 0) {
+  alertContainer.innerHTML = `
+    <div class="alert" style="background:#f0fdf4;border-color:#86efac;border-left-color:var(--green);margin-bottom:22px">
+      <span class="alert-icon">✅</span>
+      <div style="color:var(--green)"><strong>Todas as unidades dentro do intervalo ideal (12–14 dias).</strong></div>
+    </div>`;
+}
+
+// ══════════════════════════════════════════
+// RENDER GRADE DE ESPERA
+// ══════════════════════════════════════════
+const maxDias = Math.max(...gradeEspera.map(u => u.dias), META_MAX + 5);
+const gradeList = document.getElementById('grade-list');
+
+gradeEspera
+  .sort((a, b) => {
+    // Sort: críticos primeiro, depois subutilizados, depois ok
+    const rank = u => u.dias > META_MAX ? 0 : (u.dias < META_MIN ? 1 : 2);
+    return rank(a) - rank(b) || b.dias - a.dias;
+  })
+  .forEach(u => {
+    const pct = Math.min((u.dias / (maxDias + 2)) * 100, 97);
+    const isCrit = u.dias > META_MAX;
+    const isLow  = u.dias < META_MIN;
+    const cls    = isCrit ? 'crit' : (isLow ? 'low' : 'ok');
+    const barCls = isCrit ? 'bar-crit' : (isLow ? 'bar-low' : 'bar-ok');
+    const tag    = isCrit ? '<span style="font-size:0.7rem;color:var(--red);font-weight:700;margin-left:6px">FILA LONGA</span>'
+                 : isLow  ? '<span style="font-size:0.7rem;color:var(--orange);font-weight:700;margin-left:6px">SUBUTILIZADO</span>'
+                 : '<span style="font-size:0.7rem;color:var(--green);font-weight:700;margin-left:6px">IDEAL</span>';
+    gradeList.innerHTML += `
+      <div class="unit-row">
+        <div class="unit-name">${u.nome}${tag}</div>
+        <div class="unit-region">${u.regiao}</div>
+        <div class="bar-track">
+          <div class="bar-fill ${barCls}" style="width:${pct}%">${u.dias}d</div>
+        </div>
+        <div class="unit-days ${cls}">${u.dias} dias</div>
+      </div>`;
+  });
+
+// ══════════════════════════════════════════
+// RENDER FOLHA DE PAGAMENTO
+// ══════════════════════════════════════════
+function renderFolha(tbodyId, data) {
+  const tbody = document.getElementById(tbodyId);
+  const fmt = v => 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  data.forEach(d => {
+    const isTotal = d.nome === 'TOTAL';
+    const tagHtml = d.tipo === 'Especialista' ? '<span class="tag-esp">Esp</span>'
+                  : d.tipo === 'Generalista'  ? '<span class="tag-ger">Ger</span>'
+                  : '<span style="color:#aaa;font-size:0.78rem">—</span>';
+    const tr = document.createElement('tr');
+    if (isTotal) tr.className = 'total-row';
+    tr.innerHTML = `
+      <td>${d.nome}</td>
+      <td>${tagHtml}</td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums">${fmt(d.total)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+renderFolha('tb-maio',  folhaMaio);
+renderFolha('tb-junho', folhaJunho);
+
+// Preenche referência de folha médica e total fixo nas despesas
+const folhaAtual = folhaMaio.find(d => d.nome === 'TOTAL');
+if (folhaAtual) {
+  const fmt = v => 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const totalFixo = 7249 + 1000 + folhaAtual.total;
+  document.getElementById('td-folha-medica').textContent = fmt(folhaAtual.total);
+  document.getElementById('td-total-fixo').innerHTML = `${fmt(totalFixo)} <span style="font-size:0.75rem;color:var(--text-muted)">+ impostos</span>`;
+}
+</script>
+</body>
+</html>
